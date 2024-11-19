@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Connectivity Tool</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #f4f4f4; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            margin: 0; 
+        }
+        .container { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            flex-grow: 1; 
+        }
+        .box { 
+            width: 80%; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5); 
+            margin: 10px; 
+            display: none; 
+        }
+        .active-ip {
+            border: 2px solid green;
+            padding: 13px;
+            margin: 5px;
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        .inactive-ip {
+            border: 2px solid red;
+            border-radius: 10px;
+            padding: 13px;
+            margin: 5px;
+            text-align: center;
+        }
+
+        .rdp-user {
+            border: 2px solid purple ;
+            border-radius: 10px;
+            padding: 13px;
+            margin: 5px;
+            text-align: center;
+        }
+        h2 { text-align: center; }
+        ul { list-style-type: none; padding: 0; }
+        header { 
+            display: flex; 
+            align-items: center; 
+            background-color: #333; 
+            color: white; 
+        }
+        .logo {
+            width: 90px; /* Adjust the size as needed */
+            height: auto; 
+            padding: 7px;
+            opacity: 0.8; /* Make logo slightly transparent */
+            margin-right: 17px; /* Space between logo and title */
+        }
+        footer { 
+            text-align: center; 
+            padding: 8px; 
+            background-color: #333; 
+            color: white; 
+            margin-top: auto; 
+        }
+        .button { 
+            background-color: #4CAF50; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+        .button:hover { background-color: #3e8e41; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <img class="logo" src="../Images/Logo-removebg-preview.png" alt="Logo">
+    <h1 style='flex-grow: 1; text-align:center;'>Network Connectivity Tool</h1>
+</header>
+<div class='container'>
+    <div class="button-container">
+        <button class='button' onclick='showActiveIPs()'>Active</button>
+        <button class='button' onclick='showInactiveIPs()'>Inactive</button>
+        <button class='button' onclick='showRDPUsers()'>RDP</button>
+        <button class='button' onclick='runNmap()'>Run</button>
+    </div>
+    
+    <div id='active-ips' class='box active'><h2>Active IP Addresses</h2><div class='grid'>
+    </div></div>
+    
+    <div id='inactive-ips' class='box inactive'><h2>Inactive IP Addresses</h2><div class='grid'>
+    </div></div>
+    
+    <div id='rdp-users' class='box'><h2>RDP Users</h2><div class='grid'>
+    </div></div>
+</div>
+<footer>
+    <b><p>&copy; 2024 Network Connectivity Tool</p></b>
+</footer>
+<script>
+    function showActiveIPs() {
+        document.getElementById('active-ips').style.display = 'block';
+        document.getElementById('inactive-ips').style.display = 'none';
+        document.getElementById('rdp-users').style.display = 'none';
+    }
+    
+    function showInactiveIPs() {
+        document.getElementById('active-ips').style.display = 'none';
+        document.getElementById('inactive-ips').style.display = 'block';
+        document.getElementById('rdp-users').style.display = 'none';
+    }
+    
+    function showRDPUsers() {
+        document.getElementById('active-ips').style.display = 'none';
+        document.getElementById('inactive-ips').style.display = 'none';
+        document.getElementById('rdp-users').style.display = 'block';
+    }
+    
+    function runNmap() {
+        location.reload();
+    }
+
+    // Example data to populate the IPs
+    const activeIPs = ["160.160.14.1", "160.160.14.2"]; // Replace with actual active IPs
+    const inactiveIPs = ["160.160.14.3", "160.160.14.4"]; // Replace with actual inactive IPs
+    const rdpUsers = {"160.160.14.1": "RDP is open"}; // Replace with actual RDP users
+
+    function populateIPs(activeIPs, inactiveIPs, rdpUsers) {
+    const activeContainer = document.querySelector('#active-ips .grid');
+    const inactiveContainer = document.querySelector('#inactive-ips .grid');
+    const rdpContainer = document.querySelector('#rdp-users .grid');
+
+    // Clear previous entries
+    activeContainer.innerHTML = '';
+    inactiveContainer.innerHTML = '';
+    rdpContainer.innerHTML = '';
+
+    activeIPs.forEach(ip => {
+        activeContainer.innerHTML += `<div class="active-ip">${ip}</div>`;
+    });
+
+    inactiveIPs.forEach(ip => {
+        inactiveContainer.innerHTML += `<div class="inactive-ip">${ip}</div>`;
+    });
+
+    for (const [ip, status] of Object.entries(rdpUsers)) {
+        rdpContainer.innerHTML += `<div class="rdp-user">${ip}: ${status}</div>`;
+    }
+}
+
+    populateIPs(activeIPs, inactiveIPs, rdpUsers);
+    showActiveIPs();
+</script>
+</body>
+</html>
