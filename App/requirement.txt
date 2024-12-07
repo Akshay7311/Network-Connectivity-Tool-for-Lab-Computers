@@ -4,3 +4,5 @@ json
 flask
 flask-cors
 psutil
+appwrite
+python-dotenv
