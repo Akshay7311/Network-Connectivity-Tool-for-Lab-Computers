@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-ip_range = "192.168.1.0/24"
+ip_range = "192.168.56.1/24"
 
 nmap_output = subprocess.check_output([r"C:\Program Files (x86)\Nmap/nmap.exe", "-sn", ip_range])
 
@@ -26,7 +26,8 @@ for ip in active_ips:
         rdp_output = subprocess.check_output([r"C:\Program Files (x86)\Nmap/nmap.exe", "-p", "3389", ip])
         if "open" in rdp_output.decode("utf-8"):
             rdp_users[ip] = "RDP is open"
-
+        else:
+            rdp_users[ip] = "RDP is not open"
         os_output = subprocess.check_output([r"C:\Program Files (x86)\Nmap/nmap.exe", "-O", "-v", ip])
         for line in os_output.decode("utf-8").splitlines():
             if "Uptime guess" in line:

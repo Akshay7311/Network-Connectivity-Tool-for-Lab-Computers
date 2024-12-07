@@ -1,0 +1,6 @@
+python-nmap
+scapy
+json
+flask
+flask-cors
+psutil
