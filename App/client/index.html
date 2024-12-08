@@ -12,9 +12,10 @@
     <header
       class="flex gap-2 items-center justify-center p-4 bg-gray-800 text-white"
     >
-      <a href="/" class="hover:text-gray-400">Home</a>
+      <a href="/App/client/" class="hover:text-gray-400">Home</a>
       <a href="/App/client/logs.html" class="hover:text-gray-400">Logs</a>
     </header>
+
     <h1 class="text-2xl text-center font-semibold">Network Scanning Tool</h1>
 
     <div class="max-w-md mx-auto p-4">
@@ -40,13 +41,38 @@
           />
         </svg>
       </div>
-
-      <button
-        id="scanButton"
-        class="w-full py-2 bg-blue-600 disabled:bg-gray-400 text-white rounded-lg hover:bg-blue-500"
-      >
-        Scan Network
-      </button>
+      <div class="flex items-start justify-center gap-2">
+        <div class="relative">
+          <button
+            id="toggle-button"
+            class="px-4 py-2 whitespace-nowrap bg-blue-600 text-white font-semibold rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+          >
+            Show System Info
+          </button>
+          <div
+            id="system-info-card"
+            class="mx-auto absolute w-fit md:w-[500px] mt-10 p-6 bg-white shadow-lg rounded-lg border border-gray-200 hidden"
+          >
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">
+              System Information
+            </h2>
+            <div id="os-info" class="mb-4">
+              <h3 class="text-lg font-medium text-gray-600">OS Information</h3>
+              <ul class="mt-2 text-gray-700"></ul>
+            </div>
+            <div id="uptime">
+              <h3 class="text-lg font-medium text-gray-600">Uptime</h3>
+              <p class="mt-2 text-gray-700"></p>
+            </div>
+          </div>
+        </div>
+        <button
+          id="scanButton"
+          class="w-full py-2 bg-blue-600 disabled:bg-gray-400 text-white rounded-lg hover:bg-blue-500"
+        >
+          Scan Network
+        </button>
+      </div>
     </div>
 
     <div class="container mx-auto my-8">
@@ -123,21 +149,52 @@
 
     <script>
       let scanResults = [];
-
+      let system_info_result = {};
       document.addEventListener("DOMContentLoaded", async () => {
         // Show loader while fetching data
         document.getElementById("loader").classList.remove("hidden");
         document.getElementById("scan-table").classList.add("hidden");
 
         try {
-          const response = await axios.get(
-            "http://localhost:5000/get_scan_results"
-          ); // Replace with your API endpoint
-          scanResults = response.data.results;
+          let [scan_result, system_info] = await Promise.all([
+            axios.get("http://localhost:5000/get_scan_results"),
+            axios.get("http://localhost:5000/system_info"),
+          ]);
+          system_info = system_info.data;
+          console.log(system_info);
+          scanResults = scan_result.data.results;
+          scanResults.sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+          );
+
+          const osInfo = system_info.os_info;
+          const osInfoList = document.querySelector("#os-info ul");
+          osInfoList.innerHTML = `
+    <li><span class="font-semibold">System:</span> ${osInfo.system}</li>
+    <li><span class="font-semibold">Release:</span> ${osInfo.release}</li>
+    <li><span class="font-semibold">Version:</span> ${osInfo.version}</li>
+  `;
+          document.querySelector("#uptime p").innerText = system_info.uptime;
+
           renderScanResults(scanResults);
         } catch (error) {
+          console.log(error);
           document.getElementById("loader").classList.add("hidden");
           document.getElementById("error-message").classList.remove("hidden");
+        }
+      });
+
+      const toggleButton = document.getElementById("toggle-button");
+      const systemInfoCard = document.getElementById("system-info-card");
+
+      toggleButton.addEventListener("click", () => {
+        // Toggle visibility of the card
+        if (systemInfoCard.classList.contains("hidden")) {
+          systemInfoCard.classList.remove("hidden");
+          toggleButton.textContent = "Hide System Info";
+        } else {
+          systemInfoCard.classList.add("hidden");
+          toggleButton.textContent = "Show System Info";
         }
       });
 
@@ -174,52 +231,52 @@
           );
 
           row.innerHTML = `
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="flex items-center gap-2">
-          <svg class="w-4 h-4 text-gray-400"><use xlink:href="#wifi"></use></svg>
-          <span>${result.ip}</span>
-        </div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          result.status === "open"
-            ? "bg-green-100 text-green-800"
-            : result.status === "closed"
-            ? "bg-red-100 text-red-800"
-            : "bg-yellow-100 text-yellow-800"
-        }">
-          ${result.status || "open"}
-        </span>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="flex gap-1">
-          ${result.open_ports
-            .map(
-              (port) =>
-                `<span class="bg-gray-100 px-2 py-1 rounded text-sm">${port}</span>`
-            )
-            .join("")}
-        </div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="flex items-center gap-2 text-gray-500">
-          <svg class="w-4 h-4"><use xlink:href="#clock"></use></svg>
-          <span>${result.timestamp}</span>
-        </div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="flex items-center gap-2">
-          <svg class="w-4 h-4 ${
-            result.vulnerabilities?.length === 0
-              ? "text-green-500"
-              : result.vulnerabilities?.length < 3
-              ? "text-yellow-500"
-              : "text-red-500"
-          }"><use xlink:href="#shield"></use></svg>
-          <span>${result.vulnerabilities?.length || 0}</span>
-        </div>
-      </td>
-    `;
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-gray-400"><use xlink:href="#wifi"></use></svg>
+            <span>${result.ip}</span>
+          </div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            result.status === "open"
+              ? "bg-green-100 text-green-800"
+              : result.status === "closed"
+              ? "bg-red-100 text-red-800"
+              : "bg-yellow-100 text-yellow-800"
+          }">
+            ${result.status || "open"}
+          </span>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="flex gap-1">
+            ${result.open_ports
+              .map(
+                (port) =>
+                  `<span class="bg-gray-100 px-2 py-1 rounded text-sm">${port}</span>`
+              )
+              .join("")}
+          </div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="flex items-center gap-2 text-gray-500">
+            <svg class="w-4 h-4"><use xlink:href="#clock"></use></svg>
+            <span>${result.timestamp}</span>
+          </div>
+        </td>
+        <td class="px-6 py-4 whitespace-nowrap">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 ${
+              result.vulnerabilities?.length === 0
+                ? "text-green-500"
+                : result.vulnerabilities?.length < 3
+                ? "text-yellow-500"
+                : "text-red-500"
+            }"><use xlink:href="#shield"></use></svg>
+            <span>${result.vulnerabilities?.length || 0}</span>
+          </div>
+        </td>
+      `;
           resultsContainer.appendChild(row);
         });
 
@@ -299,106 +356,106 @@
         const openPortsRows = scan.open_ports
           .map(
             (port) => `
-            <tr>
-              <td class="px-4 py-2">${port.port}</td>
-              <td class="px-4 py-2">${port.service || "Unknown"}</td>
-              <td class="px-4 py-2">${port.version || "N/A"}</td>
-              <td class="px-4 py-2">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                  port.state === "open"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-red-100 text-red-800"
-                }">
-                  ${port.state}
-                </span>
-              </td>
-            </tr>`
+              <tr>
+                <td class="px-4 py-2">${port.port}</td>
+                <td class="px-4 py-2">${port.service || "Unknown"}</td>
+                <td class="px-4 py-2">${port.version || "N/A"}</td>
+                <td class="px-4 py-2">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    port.state === "open"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }">
+                    ${port.state}
+                  </span>
+                </td>
+              </tr>`
           )
           .join("");
 
         detailsContainer.innerHTML = `
-         <p><strong>IP Address:</strong> ${scan.hostname}</p>
-        <p><strong>Status:</strong> ${scan.status}</p>
-        <p><strong>Scan Time:</strong> ${scan.timestamp || scan.last_seen}</p>
+           <p><strong>IP Address:</strong> ${scan.hostname}</p>
+          <p><strong>Status:</strong> ${scan.status}</p>
+          <p><strong>Scan Time:</strong> ${scan.timestamp || scan.last_seen}</p>
 
-        <h3 class="text-lg font-semibold mt-4">Open Ports:</h3>
-        <div class="overflow-x-auto mt-2">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Port</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">State</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              ${openPortsRows}
-            </tbody>
-          </table>
-        </div>
-      `;
+          <h3 class="text-lg font-semibold mt-4">Open Ports:</h3>
+          <div class="overflow-x-auto mt-2">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Port</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">State</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                ${openPortsRows}
+              </tbody>
+            </table>
+          </div>
+        `;
 
         dialog.classList.remove("hidden");
       }
 
       function openScanDetails(scan) {
         document.getElementById("scan-details").innerHTML = `
-        <h3 class="text-lg font-semibold mb-3">System Information</h3>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <p class="text-sm text-gray-500">Hostname</p>
-            <p class="font-medium">${scan.hostname}</p>
+          <h3 class="text-lg font-semibold mb-3">System Information</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-sm text-gray-500">Hostname</p>
+              <p class="font-medium">${scan.hostname}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">Operating System</p>
+              <p class="font-medium">${scan.os}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">Last Seen</p>
+              <p class="font-medium">${scan.last_seen}</p>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500">MAC Address</p>
+              <p class="font-medium">${scan.mac_address}</p>
+            </div>
           </div>
-          <div>
-            <p class="text-sm text-gray-500">Operating System</p>
-            <p class="font-medium">${scan.os}</p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">Last Seen</p>
-            <p class="font-medium">${scan.last_seen}</p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-500">MAC Address</p>
-            <p class="font-medium">${scan.mac_address}</p>
-          </div>
-        </div>
-        <h3 class="text-lg font-semibold mb-3">Open Ports</h3>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Port</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">State</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              ${scan.open_ports
-                .map(
-                  (port) => `
-                <tr">
-                  <td class="px-4 py-2">${port.port}</td>
-                  <td class="px-4 py-2">${port.service || "Unknown"}</td>
-                  <td class="px-4 py-2">${port.version || "N/A"}</td>
-                  <td class="px-4 py-2">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      port.state === "open"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }">
-                      ${port.state}
-                    </span>
-                  </td>
+          <h3 class="text-lg font-semibold mb-3">Open Ports</h3>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Port</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
+                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">State</th>
                 </tr>
-              `
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-      `;
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                ${scan.open_ports
+                  .map(
+                    (port) => `
+                  <tr">
+                    <td class="px-4 py-2">${port.port}</td>
+                    <td class="px-4 py-2">${port.service || "Unknown"}</td>
+                    <td class="px-4 py-2">${port.version || "N/A"}</td>
+                    <td class="px-4 py-2">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        port.state === "open"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }">
+                        ${port.state}
+                      </span>
+                    </td>
+                  </tr>
+                `
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
 
         // Show the dialog
         document

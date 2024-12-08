@@ -164,6 +164,7 @@ def get_os_info():
         "version": platform.version(),
         "release": platform.release()
     }
+    
 
 def log_scan_results(results, user_id=None):
     """
@@ -260,99 +261,3 @@ def get_system_info(target_ip):
         return {"error": str(e)}
 
 
-# TO Scan Vulnerabilities in IP
-def scan_vulnerabilities(target="192.168.1.0/24"):
-    try:
-        command = ["nmap", "-sV", "--script", "vuln", target]
-        # Run Nmap with `vulners` and other scripts
-        nmap_output = subprocess.run(command, capture_output=True, text=True)
-
-        # Access stdout
-        output_lines = nmap_output.stdout.splitlines()
-
-        results = []
-        current_ip = None
-        vulnerabilities = []
-
-        for line in output_lines:
-            # Match IP address
-            ip_match = re.match(r"Nmap scan report for (.*)", line)
-            # Match vulnerabilities (e.g., CVE entries)
-            vuln_match = re.match(r"\|\s+VULNERABLE:\s+(.*)", line)
-            cve_match = re.search(r"ID:\s+(CVE-\d+-\d+)", line)
-            # Match additional vulnerability descriptions
-            desc_match = re.match(r"\|\s+(.*)", line)
-
-            if ip_match:
-                # Save the previous IP's data
-                if current_ip and vulnerabilities:
-                    results.append({"ip": current_ip, "vulnerabilities": vulnerabilities})
-                # Start new IP entry
-                current_ip = ip_match.group(1)
-                vulnerabilities = []
-
-            elif vuln_match:
-                # Capture the name of a vulnerability
-                vulnerabilities.append({"name": vuln_match.group(1), "cves": []})
-
-            elif cve_match and vulnerabilities:
-                # Append CVE to the last vulnerability entry
-                vulnerabilities[-1]["cves"].append(cve_match.group(1))
-
-            elif desc_match and vulnerabilities:
-                # Append descriptive information to the last vulnerability entry
-                if "description" not in vulnerabilities[-1]:
-                    vulnerabilities[-1]["description"] = desc_match.group(1)
-                else:
-                    vulnerabilities[-1]["description"] += " " + desc_match.group(1)
-
-        # Add the last IP's vulnerabilities
-        if current_ip and vulnerabilities:
-            results.append({"ip": current_ip, "vulnerabilities": vulnerabilities})
-
-        # Log results
-        for result in results:
-            logging.info(f"Vulnerabilities for {result['ip']}: {result['vulnerabilities']}")
-
-        return results
-
-    except Exception as e:
-        logging.error(f"Error during vulnerability scanning: {str(e)}")
-        return []
-
-
-def scan_combined(target_ip,user_id=None):
-    try:
-        # Perform port scanning
-        ports_results = scan_ports_with_subprocess(target=target_ip, user_id=user_id)
-
-        # Perform vulnerability scanning
-        # vulnerabilities = scan_vulnerabilities(target=target_ip)
-
-        # Fetch system info
-        system_info = get_system_info(target_ip)
-
-        # Combine results
-        combined_results = {
-            "ip": target_ip,
-            "ports": ports_results,
-            # "vulnerabilities": vulnerabilities,
-            "system_info": system_info,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-
-        # Store in Appwrite
-        # document_id = str(uuid.uuid4())
-        # databases.create_document(
-        #     database_id=database_id,
-        #     collection_id="6755334d002b8b1b69b9",
-        #     document_id=document_id,
-        #     data=combined_results
-        # )
-
-        logging.info(f"Scan results stored for {target_ip}")
-        return combined_results
-
-    except Exception as e:
-        logging.error(f"Error during combined scan for {target_ip}: {str(e)}")
-        return {"error": str(e)}
