@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from utils.scan_utils import scan_network, scan_ports_with_subprocess, get_uptime, get_os_info, log_scan_results
+from utils.scan_utils import scan_network, scan_ports_with_subprocess, get_uptime, get_os_info, log_scan_results, scan_combined, get_system_info, scan_vulnerabilities
 from datetime import datetime
 from config import databases
 import os
@@ -86,6 +86,40 @@ def get_logs():
         return jsonify({"logs": documents['documents']}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500    
+
+
+@app.route('/vulnerabilities', methods=['POST'])
+def vulnerabilities():
+    try:
+        data = request.json
+        target_ip = data.get('target', '192.168.1.1')
+
+        results = scan_vulnerabilities(target_ip)
+        return jsonify({"message": "Vulnerability scan completed", "results": results}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/system_info_ip', methods=['POST'])
+def system_info_specific():
+    try:
+        data = request.json
+        target_ip = data.get('target', '192.168.1.1')
+
+        results = get_system_info(target_ip)
+        return jsonify({"message": "System info retrieved", "results": results}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/combined_scan', methods=['POST'])
+def combined_scan():
+    try:
+        data = request.json
+        target_ip = data.get('target', '192.168.1.1')
+
+        results = scan_combined(target_ip)
+        return jsonify({"message": "Combined scan completed", "results": results}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 

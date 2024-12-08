@@ -9,6 +9,8 @@ import re
 from config import databases
 import uuid
 import os
+from appwrite.query import Query
+
 
 
 # Configure logging
@@ -38,6 +40,7 @@ def scan_network(target="192.168.1.0/24"):
 # Helper function: Scan open ports
 def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389"):
     try:
+        # Run the Nmap scan
         nmap_output = subprocess.check_output(["nmap", "-v", target], universal_newlines=True)
         results = []
         current_ip = None
@@ -71,24 +74,53 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389"):
         if current_ip and "host down" not in current_ip.lower():
             results.append({"ip": current_ip, "open_ports": open_ports})
 
-        # Create document ID
-        
-        # Store scan results in Appwrite database
+        # Check if IP already exists in Appwrite and update or create accordingly
         for result in results:
-            document_id = str(uuid.uuid4())
-            # Ensure the result structure matches the expected schema
+            # Check if document with this IP exists
+            existing_document = None
+            try:
+                query = f'ip.equal("{result["ip"]}")'
+                logging.info(f"Querying for IP: {query}")
+                documents = databases.list_documents(
+                    database_id=database_id,
+                    collection_id=scan_result_collection_id,
+                    queries=[
+                     Query.equal('ip',result["ip"])
+                 ]
+                )
+                if documents['total'] > 0:
+                    existing_document = documents['documents'][0]
+            except Exception as e:
+                logging.error(f"Error checking existing document for IP {result['ip']}: {str(e)}")
+            
+            # Document data to store or update
             document_data = {
                 "ip": result["ip"],
                 "open_ports": result["open_ports"],
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
-            databases.create_document(
-                database_id=database_id,
-                document_id=document_id,
-                collection_id=scan_result_collection_id,  # Your Appwrite collection ID
-                data=document_data,
-            )
 
+            # Update existing document or create new one
+            if existing_document:
+                document_id = existing_document['$id']
+                databases.update_document(
+                    database_id=database_id,
+                    collection_id=scan_result_collection_id,
+                    document_id=document_id,
+                    data=document_data
+                )
+                logging.info(f"Updated scan result for IP {result['ip']}")
+            else:
+                document_id = str(uuid.uuid4())  # Generate new document ID
+                databases.create_document(
+                    database_id=database_id,
+                    document_id=document_id,
+                    collection_id=scan_result_collection_id,
+                    data=document_data,
+                )
+                logging.info(f"Created new scan result for IP {result['ip']}")
+
+        # Log the results
         for result in results:
             logging.info(f"Scanning {result['ip']}, Open Ports: {result['open_ports']}")
 
@@ -96,7 +128,7 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389"):
     except Exception as e:
         logging.error(f"Error scanning with subprocess: {str(e)}")
         return []
-
+    
 def get_uptime():
     try:
         boot_time = psutil.boot_time()
@@ -146,3 +178,146 @@ def log_scan_results(results):
         except Exception as e:
             # Catch any errors that occur during the document creation
             logging.error(f"Error creating document for IP: {result['ip']}, Error: {str(e)}")
+
+# Get System Info for Specific IP address
+def get_system_info(target_ip):
+    try:
+        # Run Nmap with OS detection and service/version detection
+        nmap_output = subprocess.check_output(
+            ["nmap", "-O", "-sV", target_ip],
+            universal_newlines=True
+        )
+
+        # Initialize system info dictionary
+        system_info = {
+            "hostname": None,
+            "os": None,
+            "last_seen": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "status": "open",
+            "open_ports": []
+        }
+
+        # Parse hostname
+        hostname_match = re.search(r"Nmap scan report for (.+)", nmap_output)
+        if hostname_match:
+            system_info["hostname"] = hostname_match.group(1)
+
+        # Parse OS information
+        os_match = re.search(r"Running: (.+)", nmap_output)
+        if os_match:
+            system_info["os"] = os_match.group(1)
+
+        # Parse open ports
+        port_matches = re.findall(r"(\d+)/tcp\s+open\s+(\S+)\s+(.+)", nmap_output)
+        for port, service, version in port_matches:
+            system_info["open_ports"].append({
+                "port": port,
+                "service": service,
+                "version": version,
+                "state": "open"
+            })
+
+        logging.info(f"System info for {target_ip}: {system_info}")
+        return system_info
+
+    except Exception as e:
+        logging.error(f"Error retrieving system info for {target_ip}: {str(e)}")
+        return {"error": str(e)}
+
+
+# TO Scan Vulnerabilities in IP
+def scan_vulnerabilities(target="192.168.1.0/24"):
+    try:
+        command = ["nmap", "-sV", "--script", "vuln", target]
+        # Run Nmap with `vulners` and other scripts
+        nmap_output = subprocess.run(command, capture_output=True, text=True)
+
+        # Access stdout
+        output_lines = nmap_output.stdout.splitlines()
+
+        results = []
+        current_ip = None
+        vulnerabilities = []
+
+        for line in output_lines:
+            # Match IP address
+            ip_match = re.match(r"Nmap scan report for (.*)", line)
+            # Match vulnerabilities (e.g., CVE entries)
+            vuln_match = re.match(r"\|\s+VULNERABLE:\s+(.*)", line)
+            cve_match = re.search(r"ID:\s+(CVE-\d+-\d+)", line)
+            # Match additional vulnerability descriptions
+            desc_match = re.match(r"\|\s+(.*)", line)
+
+            if ip_match:
+                # Save the previous IP's data
+                if current_ip and vulnerabilities:
+                    results.append({"ip": current_ip, "vulnerabilities": vulnerabilities})
+                # Start new IP entry
+                current_ip = ip_match.group(1)
+                vulnerabilities = []
+
+            elif vuln_match:
+                # Capture the name of a vulnerability
+                vulnerabilities.append({"name": vuln_match.group(1), "cves": []})
+
+            elif cve_match and vulnerabilities:
+                # Append CVE to the last vulnerability entry
+                vulnerabilities[-1]["cves"].append(cve_match.group(1))
+
+            elif desc_match and vulnerabilities:
+                # Append descriptive information to the last vulnerability entry
+                if "description" not in vulnerabilities[-1]:
+                    vulnerabilities[-1]["description"] = desc_match.group(1)
+                else:
+                    vulnerabilities[-1]["description"] += " " + desc_match.group(1)
+
+        # Add the last IP's vulnerabilities
+        if current_ip and vulnerabilities:
+            results.append({"ip": current_ip, "vulnerabilities": vulnerabilities})
+
+        # Log results
+        for result in results:
+            logging.info(f"Vulnerabilities for {result['ip']}: {result['vulnerabilities']}")
+
+        return results
+
+    except Exception as e:
+        logging.error(f"Error during vulnerability scanning: {str(e)}")
+        return []
+
+
+def scan_combined(target_ip):
+    try:
+        # Perform port scanning
+        ports_results = scan_ports_with_subprocess(target=target_ip)
+
+        # Perform vulnerability scanning
+        vulnerabilities = scan_vulnerabilities(target=target_ip)
+
+        # Fetch system info
+        system_info = get_system_info(target_ip)
+
+        # Combine results
+        combined_results = {
+            "ip": target_ip,
+            "ports": ports_results,
+            "vulnerabilities": vulnerabilities,
+            "system_info": system_info,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        # Store in Appwrite
+        document_id = str(uuid.uuid4())
+        databases.create_document(
+            database_id=database_id,
+            collection_id="6755334d002b8b1b69b9",
+            document_id=document_id,
+            data=combined_results
+        )
+
+        logging.info(f"Scan results stored for {target_ip}")
+        return combined_results
+
+    except Exception as e:
+        logging.error(f"Error during combined scan for {target_ip}: {str(e)}")
+        return {"error": str(e)}
