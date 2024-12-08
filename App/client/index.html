@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Network Scan Results</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide-icons@latest/dist/umd/index.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 font-sans antialiased">
+    <header
+      class="flex gap-2 items-center justify-center p-4 bg-gray-800 text-white"
+    >
+      <a href="/" class="hover:text-gray-400">Home</a>
+      <a href="/App/client/logs.html" class="hover:text-gray-400">Logs</a>
+    </header>
+    <h1 class="text-2xl text-center font-semibold">Network Scanning Tool</h1>
+
+    <div class="max-w-md mx-auto p-4">
+      <div class="relative mb-4">
+        <input
+          type="text"
+          id="ipAddress"
+          placeholder="Enter IP address or range (e.g. 192.168.1.1)"
+          class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <svg
+          class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-4.35-4.35m0 0a7.5 7.5 0 1 0-1.06-1.06m1.06 1.06L15 15"
+          />
+        </svg>
+      </div>
+
+      <button
+        id="scanButton"
+        class="w-full py-2 bg-blue-600 disabled:bg-gray-400 text-white rounded-lg hover:bg-blue-500"
+      >
+        Scan Network
+      </button>
+    </div>
+
+    <div class="container mx-auto my-8">
+      <!-- Loader -->
+      <div id="loader" class="hidden text-center py-12 text-lg text-gray-600">
+        Loading...
+      </div>
+
+      <!-- Error Message -->
+      <div
+        id="error-message"
+        class="hidden text-center py-12 text-lg text-red-600"
+      >
+        Error fetching scan results. Please try again later.
+      </div>
+
+      <!-- Scan Table -->
+      <div class="bg-white rounded-lg shadow-sm border">
+        <div class="overflow-x-auto">
+          <table id="scan-table" class="w-full table-auto">
+            <thead>
+              <tr class="bg-gray-50 border-b">
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  IP Address
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Open Ports
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Scan Time
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Vulnerabilities
+                </th>
+              </tr>
+            </thead>
+            <tbody id="scan-results" class="bg-white divide-y divide-gray-200">
+              <!-- Scan results will be inserted here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scan Details Modal -->
+    <div
+      id="scan-details-dialog"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center"
+    >
+      <div class="bg-white rounded-lg shadow-lg mx-2 max-w-[600px] p-6">
+        <h2 class="text-lg font-semibold mb-4">Scan Details</h2>
+        <div id="scan-details"></div>
+        <button
+          id="close-dialog"
+          class="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let scanResults = [];
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Show loader while fetching data
+        document.getElementById("loader").classList.remove("hidden");
+        document.getElementById("scan-table").classList.add("hidden");
+
+        try {
+          const response = await axios.get(
+            "http://localhost:5000/get_scan_results"
+          ); // Replace with your API endpoint
+          scanResults = response.data.results;
+          renderScanResults(scanResults);
+        } catch (error) {
+          document.getElementById("loader").classList.add("hidden");
+          document.getElementById("error-message").classList.remove("hidden");
+        }
+      });
+
+      function renderScanResults(scanResults) {
+        const resultsContainer = document.getElementById("scan-results");
+        resultsContainer.innerHTML = ""; // Clear any previous results
+
+        // Ensure uniqueness and push the latest scan result to the top
+        const uniqueResults = [];
+        scanResults.forEach((result) => {
+          // Check if the IP already exists in the uniqueResults array
+          const existingResultIndex = uniqueResults.findIndex(
+            (res) => res.ip === result.ip
+          );
+
+          if (existingResultIndex !== -1) {
+            // If the IP exists, remove it from the array (to update it)
+            uniqueResults.splice(existingResultIndex, 1);
+          }
+
+          // Push the latest scan result to the top (unshift)
+          uniqueResults.unshift(result);
+        });
+
+        // Sort the unique results in ascending order (optional, based on IP or any other field)
+        uniqueResults.sort((a, b) => a.ip.localeCompare(b.ip)); // Adjust this based on your sorting preference
+
+        // Render the scan results in the table
+        uniqueResults.forEach((result) => {
+          const row = document.createElement("tr");
+          row.classList.add("hover:bg-gray-50", "cursor-pointer");
+          row.addEventListener("click", () =>
+            showScanDetails(result.system_info)
+          );
+
+          row.innerHTML = `
+      <td class="px-6 py-4 whitespace-nowrap">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-400"><use xlink:href="#wifi"></use></svg>
+          <span>${result.ip}</span>
+        </div>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          result.status === "open"
+            ? "bg-green-100 text-green-800"
+            : result.status === "closed"
+            ? "bg-red-100 text-red-800"
+            : "bg-yellow-100 text-yellow-800"
+        }">
+          ${result.status || "open"}
+        </span>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <div class="flex gap-1">
+          ${result.open_ports
+            .map(
+              (port) =>
+                `<span class="bg-gray-100 px-2 py-1 rounded text-sm">${port}</span>`
+            )
+            .join("")}
+        </div>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <div class="flex items-center gap-2 text-gray-500">
+          <svg class="w-4 h-4"><use xlink:href="#clock"></use></svg>
+          <span>${result.timestamp}</span>
+        </div>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 ${
+            result.vulnerabilities?.length === 0
+              ? "text-green-500"
+              : result.vulnerabilities?.length < 3
+              ? "text-yellow-500"
+              : "text-red-500"
+          }"><use xlink:href="#shield"></use></svg>
+          <span>${result.vulnerabilities?.length || 0}</span>
+        </div>
+      </td>
+    `;
+          resultsContainer.appendChild(row);
+        });
+
+        document.getElementById("loader").classList.add("hidden");
+        document.getElementById("scan-table").classList.remove("hidden");
+      }
+
+      function handleSearchButton() {
+        const ipAddressValue = ipAddress.value;
+        searchAxiosFunction(ipAddressValue);
+      }
+
+      async function searchAxiosFunction(ipAddressValue) {
+        try {
+          scanButton.disabled = true;
+          scanButton.innerText = "scanning...";
+          const response = await axios.post(
+            "http://localhost:5000/scan_ports",
+            {
+              "Content-Type": "application/json",
+              target: ipAddressValue,
+            }
+          ); // Replace with your API endpoint
+          console.log(response);
+
+          let newScanResult = response.data.results; // This should directly hold the scan result object, not an array
+
+          // If the result is wrapped in an array, flatten it
+          if (Array.isArray(newScanResult)) {
+            newScanResult = newScanResult[0]; // If there's only one result in the array, get the first element
+          } // Assuming it contains the scan result for the provided IP
+
+          updateScanResults(newScanResult); // Update the scan results array
+
+          scanButton.disabled = false;
+          scanButton.innerText = "Scan Network";
+          window.location.reload();
+          //   const scanResults = response.data.results;
+          //   renderScanResults(scanResults);
+        } catch (error) {
+          console.log(error);
+          scanButton.disabled = false;
+          scanButton.innerText = "Scan Network";
+        }
+      }
+
+      scanButton.addEventListener("click", () => {
+        handleSearchButton();
+      });
+
+      function updateScanResults(newResult) {
+        const resultsContainer = document.getElementById("scan-results");
+
+        // Ensure the `scanResults` array is properly defined and updated
+        const existingResultIndex = scanResults.findIndex(
+          (result) => result.ip === newResult.ip
+        );
+
+        console.log(existingResultIndex);
+
+        if (existingResultIndex !== -1) {
+          // If the IP exists, update it and move it to the top
+          scanResults[existingResultIndex] = newResult; // Update the existing entry
+          scanResults.unshift(scanResults.splice(existingResultIndex, 1)[0]); // Move it to the top
+        } else {
+          // If it's a new IP, just add it to the top
+          scanResults.unshift(newResult);
+        }
+
+        renderScanResults(scanResults); // Re-render the updated results
+      }
+
+      function showScanDetails(scan) {
+        const dialog = document.getElementById("scan-details-dialog");
+        const detailsContainer = document.getElementById("scan-details");
+        console.log(scan);
+        const openPortsRows = scan.open_ports
+          .map(
+            (port) => `
+            <tr>
+              <td class="px-4 py-2">${port.port}</td>
+              <td class="px-4 py-2">${port.service || "Unknown"}</td>
+              <td class="px-4 py-2">${port.version || "N/A"}</td>
+              <td class="px-4 py-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                  port.state === "open"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }">
+                  ${port.state}
+                </span>
+              </td>
+            </tr>`
+          )
+          .join("");
+
+        detailsContainer.innerHTML = `
+         <p><strong>IP Address:</strong> ${scan.hostname}</p>
+        <p><strong>Status:</strong> ${scan.status}</p>
+        <p><strong>Scan Time:</strong> ${scan.timestamp || scan.last_seen}</p>
+
+        <h3 class="text-lg font-semibold mt-4">Open Ports:</h3>
+        <div class="overflow-x-auto mt-2">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Port</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">State</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              ${openPortsRows}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+        dialog.classList.remove("hidden");
+      }
+
+      function openScanDetails(scan) {
+        document.getElementById("scan-details").innerHTML = `
+        <h3 class="text-lg font-semibold mb-3">System Information</h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-sm text-gray-500">Hostname</p>
+            <p class="font-medium">${scan.hostname}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Operating System</p>
+            <p class="font-medium">${scan.os}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">Last Seen</p>
+            <p class="font-medium">${scan.last_seen}</p>
+          </div>
+          <div>
+            <p class="text-sm text-gray-500">MAC Address</p>
+            <p class="font-medium">${scan.mac_address}</p>
+          </div>
+        </div>
+        <h3 class="text-lg font-semibold mb-3">Open Ports</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Port</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">State</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              ${scan.open_ports
+                .map(
+                  (port) => `
+                <tr">
+                  <td class="px-4 py-2">${port.port}</td>
+                  <td class="px-4 py-2">${port.service || "Unknown"}</td>
+                  <td class="px-4 py-2">${port.version || "N/A"}</td>
+                  <td class="px-4 py-2">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      port.state === "open"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }">
+                      ${port.state}
+                    </span>
+                  </td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+        // Show the dialog
+        document
+          .getElementById("scan-details-dialog")
+          .classList.remove("hidden");
+      }
+
+      document.getElementById("close-dialog").addEventListener("click", () => {
+        document.getElementById("scan-details-dialog").classList.add("hidden");
+      });
+    </script>
+
+    <!-- Icons -->
+    <svg style="display: none">
+      <symbol id="wifi" viewBox="0 0 24 24">
+        <path
+          d="M12 3c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"
+        />
+      </symbol>
+      <symbol id="clock" viewBox="0 0 24 24">
+        <path
+          d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10-10-4.48-10-10 4.48-10 10-10zm0 18c4.41 0 8-3.59 8-8s-3.59-8-8-8-8 3.59-8 8 3.59 8 8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"
+        />
+      </symbol>
+      <symbol id="shield" viewBox="0 0 24 24">
+        <path
+          d="M12 2c1.1 0 1.99.9 1.99 2l.01 7.53 3.66 1.66c.72.33 1.28 1.05 1.28 1.9 0 .95-.56 1.57-1.28 1.9l-3.66 1.66v5.2c0 1.24-1.03 2.25-2.25 2.25s-2.25-1.03-2.25-2.25v-5.2l-3.66-1.66c-.72-.33-1.28-1.05-1.28-1.9 0-.85.56-1.57 1.28-1.9l3.66-1.66v-7.53c0-1.1.9-2 2-2z"
+        />
+      </symbol>
+    </svg>
+  </body>
+</html>

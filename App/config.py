@@ -1,5 +1,6 @@
 from appwrite.client import Client
 from appwrite.services.databases import Databases
+from appwrite.services.account import Account
 import os
 from dotenv import load_dotenv
 
@@ -16,4 +17,5 @@ client.set_key(api_key)  # Set your API key
 
 # Initialize Appwrite Database service
 databases = Databases(client)
+account = Account(client)
 

@@ -4,6 +4,7 @@ from utils.scan_utils import scan_network, scan_ports_with_subprocess, get_uptim
 from datetime import datetime
 from config import databases
 import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,17 +17,27 @@ database_id = os.getenv('DATABASE_ID')
 scan_result_collection_id = os.getenv('SCAN_RESULT_COLLECTION_ID')
 log_result_collection_id = os.getenv('LOG_RESULT_COLLECTION_ID')
 
+
+
+# Configure logging
+logging.basicConfig(
+    filename="network_scan.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 # API endpoint: Scan network
 @app.route('/scan', methods=['POST'])
 def scan():
     try:
         data = request.json
         target = data.get('target', '192.168.1.0/24')
+        user_id = data.get('user_id', None)
         session_start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Perform scan
         devices = scan_network(target)
-        log_scan_results(devices)
+        log_scan_results(devices, user_id)
 
         os_info = get_os_info()
         uptime = get_uptime()
@@ -47,8 +58,10 @@ def scan_rdp_ports():
     try:
         data = request.json
         target = data.get('target', '192.168.1.0/24')
-
-        ports_results = scan_ports_with_subprocess(target)
+        user_id = data.get('user_id', None)
+        logging.info(f"target ip from frotnend : {target}")
+        ports_results = scan_ports_with_subprocess(target,user_id=user_id)
+        log_scan_results(ports_results, user_id)
 
         return jsonify({
             "message": "Port scan completed",
@@ -115,8 +128,9 @@ def combined_scan():
     try:
         data = request.json
         target_ip = data.get('target', '192.168.1.1')
+        user_id = data.get('user_id', None)
 
-        results = scan_combined(target_ip)
+        results = scan_combined(target_ip, user_id)
         return jsonify({"message": "Combined scan completed", "results": results}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
