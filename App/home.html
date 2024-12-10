@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NetManager</title>
+    <link rel="stylesheet" href="styles/styles.css" />
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="navbar-container">
+        <div class="navbar-left">
+          <a href="/" class="navbar-logo">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/8/87/Network_icon.svg"
+              alt="NetManager"
+              class="navbar-icon"
+            />
+            <span class="navbar-brand">NetManager</span>
+          </a>
+        </div>
+        <div class="navbar-right">
+          <a href="/" class="navbar-link">Home</a>
+          <a href="/features" class="navbar-link">Features</a>
+          <a href="/about" class="navbar-link">About</a>
+          <a href="/contact" class="navbar-link">Contact</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-overlay"></div>
+      <div class="container">
+        <div class="hero-content">
+          <h1>Advanced Network Management</h1>
+          <p>
+            Monitor, analyze, and secure your network infrastructure with our
+            comprehensive tool suite.
+          </p>
+          <button
+            onclick="window.location.href='app.html'"
+            class="button-primary"
+          >
+            Launch Application
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-number">10k+</div>
+            <p>Networks Monitored</p>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">1M+</div>
+            <p>Devices Scanned</p>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">99.9%</div>
+            <p>Uptime</p>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">24/7</div>
+            <p>Support</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+      <div class="container">
+        <div class="section-header">
+          <h2>How It Works</h2>
+          <p>Four simple steps to secure and manage your network</p>
+        </div>
+        <div class="how-it-works-grid">
+          <div class="step">
+            <div class="icon bg-blue"></div>
+            <h3>Network Discovery</h3>
+            <p>
+              Our tool automatically scans your network and identifies all
+              connected devices, creating a comprehensive inventory of your
+              infrastructure.
+            </p>
+          </div>
+          <div class="step">
+            <div class="icon bg-green"></div>
+            <h3>Security Assessment</h3>
+            <p>
+              Advanced algorithms analyze each device for vulnerabilities and
+              security risks, providing detailed reports and recommendations.
+            </p>
+          </div>
+          <div class="step">
+            <div class="icon bg-purple"></div>
+            <h3>Service Analysis</h3>
+            <p>
+              Detect and catalog all running services, open ports, and protocols
+              across your network for complete visibility.
+            </p>
+          </div>
+          <div class="step">
+            <div class="icon bg-orange"></div>
+            <h3>Performance Monitoring</h3>
+            <p>
+              Real-time monitoring of network performance metrics, with alerts
+              for any issues or anomalies.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Demo Section -->
+    <section class="demo">
+      <div class="container">
+        <div class="demo-content">
+          <h2>See It In Action</h2>
+          <p>
+            Experience the power of our network management tool with these key
+            features
+          </p>
+          <ul>
+            <li>
+              <div class="icon bg-blue"></div>
+              <div>
+                <h3>Command-Line Interface</h3>
+                <p>
+                  Powerful CLI for advanced users and automation capabilities
+                </p>
+              </div>
+            </li>
+            <li>
+              <div class="icon bg-blue"></div>
+              <div>
+                <h3>Real-Time Updates</h3>
+                <p>Instant notifications and live network status updates</p>
+              </div>
+            </li>
+            <li>
+              <div class="icon bg-blue"></div>
+              <div>
+                <h3>Security First</h3>
+                <p>
+                  Enterprise-grade security with encryption and access controls
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+        <div class="demo-preview">
+          <pre>
+> netmanager scan --network 192.168.1.0/24
+Scanning network...
+Found 23 devices
+3 potential security risks detected
+Generating report...
+
+> netmanager analyze --device printer01
+Device: printer01 (192.168.1.45)
+Status: Online
+Services: 3 running
+Ports: 21, 80, 443 open
+Security: Medium Risk
+                </pre
+          >
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="container">
+   
+      <div class="footer-bottom" style="text-align: center;">
+        <p>© 2024 NetManager. All rights reserved.</p>
+      </div>
+    </footer>
+    <script src="scripts/scripts.js"></script>
+  </body>
+</html>
