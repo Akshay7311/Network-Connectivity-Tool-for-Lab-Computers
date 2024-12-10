@@ -161,11 +161,11 @@
             axios.get("http://localhost:5000/system_info"),
           ]);
           system_info = system_info.data;
-          console.log(system_info);
+          console.log(system_info, scan_result);
           scanResults = scan_result.data.results;
-          scanResults.sort(
-            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-          );
+          // scanResults.sort(
+          //   (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+          // );
 
           const osInfo = system_info.os_info;
           const osInfoList = document.querySelector("#os-info ul");

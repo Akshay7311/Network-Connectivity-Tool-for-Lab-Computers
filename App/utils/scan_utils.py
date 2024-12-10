@@ -46,8 +46,16 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389", user_id=No
         #     logging.error(error_message)
         #     return {"error": error_message}
 
+        if not target:
+            target = get_default_gateway()
+            logging.info(f"Scanning target: {target}")
+
+        nmap_path = "nmap"  # Default to 'nmap' in PATH
+        if os.name == 'nt':  # For Windows systems
+            nmap_path = r"C:\Program Files (x86)\Nmap\nmap.exe" 
+
         # Run the Nmap scan
-        nmap_output = subprocess.check_output(["nmap", "-v", target], universal_newlines=True)
+        nmap_output = subprocess.check_output([nmap_path, "-v", target], universal_newlines=True)
         results = []
         current_ip = None
         open_ports = []
@@ -142,6 +150,52 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389", user_id=No
         logging.error(f"Error scanning with subprocess: {str(e)}")
         return {"error": f"Unexpected error: {str(e)}"}
      
+     
+def get_default_gateway():
+    try:
+        if platform.system() == "Windows":
+            # Use ipconfig to get adapter information
+            output = subprocess.check_output("ipconfig", shell=True, universal_newlines=True)
+
+            # Split the output by adapters
+            adapters = output.split("\n\n")
+
+            for adapter in adapters:
+                # Look for IPv4 Address and Default Gateway in each adapter section
+                ip_match = re.search(r"IPv4 Address[^\d]*(\d+\.\d+\.\d+\.\d+)", adapter)
+                gateway_match = re.search(r"Default Gateway[^\d]*(\d+\.\d+\.\d+\.\d+)", adapter)
+
+                if gateway_match:
+                    # If Default Gateway exists, append /24 and return
+                    return f"{gateway_match.group(1)}/24"
+                elif ip_match:
+                    # Infer the gateway from the IP address if no Default Gateway is specified
+                    ip_parts = ip_match.group(1).split('.')
+                    if len(ip_parts) == 4:
+                        inferred_gateway = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.1/24"
+                        logging.warning(f"Default Gateway missing, inferred as {inferred_gateway}")
+                        return inferred_gateway
+
+            # No match found; fallback
+            logging.warning("No Default Gateway or IP Address found, using hardcoded fallback.")
+            return "192.168.1.1/24"
+
+        else:
+            # Use `ip route show` for Linux/Unix
+            output = subprocess.check_output("ip route show", shell=True, universal_newlines=True)
+            gateway_match = re.search(r"default via (\d+\.\d+\.\d+\.\d+)", output)
+
+            if gateway_match:
+                return f"{gateway_match.group(1)}/24"
+            else:
+                logging.warning("Default gateway not found on Linux/Unix, using hardcoded fallback.")
+                return "192.168.1.1/24"
+
+    except Exception as e:
+        logging.error(f"Error detecting default gateway: {str(e)}")
+        return "192.168.1.1/24"  # Fallback IP if detection fails
+
+   
 def get_uptime():
     try:
         boot_time = psutil.boot_time()
