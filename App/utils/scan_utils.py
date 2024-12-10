@@ -6,7 +6,7 @@ import time
 from datetime import timedelta,datetime
 import subprocess
 import re
-from config import databases,account
+from config import databases
 import uuid
 import os
 from appwrite.query import Query
@@ -64,6 +64,7 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389", user_id=No
         results = []
         current_ip = None
         open_ports = []
+        logging.info(f"{nmap_output}")
 
         # Parse Nmap output for open ports
         for line in nmap_output.splitlines():
