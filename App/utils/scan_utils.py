@@ -10,8 +10,14 @@ from config import databases,account
 import uuid
 import os
 from appwrite.query import Query
+import shutil
 
-
+def is_nmap_installed(nmap_path="nmap"):
+    """Check if Nmap is installed and accessible."""
+    if shutil.which(nmap_path):
+        return True
+    logging.error(f"Nmap is not found at path: {nmap_path}")
+    return False
 
 # Configure logging
 logging.basicConfig(
@@ -53,6 +59,9 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389", user_id=No
         nmap_path = "nmap"  # Default to 'nmap' in PATH
         if os.name == 'nt':  # For Windows systems
             nmap_path = r"C:\Program Files (x86)\Nmap\nmap.exe" 
+
+        if not is_nmap_installed(nmap_path):
+            raise FileNotFoundError(f"Nmap executable not found at {nmap_path}. Install it or update the path.")
 
         # Run the Nmap scan
         nmap_output = subprocess.check_output([nmap_path, "-v", target], universal_newlines=True)
