@@ -10,14 +10,15 @@ from config import databases,account
 import uuid
 import os
 from appwrite.query import Query
-import shutil
 
-def is_nmap_installed(nmap_path="nmap"):
-    """Check if Nmap is installed and accessible."""
-    if shutil.which(nmap_path):
+def is_nmap_installed():
+    try:
+        subprocess.check_output(['nmap', '--version'], stderr=subprocess.STDOUT)
+        logging.info("Nmap is installed.")
         return True
-    logging.error(f"Nmap is not found at path: {nmap_path}")
-    return False
+    except subprocess.CalledProcessError:
+        logging.error("Nmap is not installed or not found in PATH.")
+        return False
 
 # Configure logging
 logging.basicConfig(
@@ -46,11 +47,9 @@ def scan_network(target="192.168.1.0/24"):
 # Helper function: Scan open ports
 def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389", user_id=None):
     try:
-        # Validate user ID
-        # if not user_id:
-        #     error_message = "User ID not provided. Authentication required to save scan results."
-        #     logging.error(error_message)
-        #     return {"error": error_message}
+        # Check if nmap is installed before proceeding
+        if not is_nmap_installed():
+            return {"error": "Nmap is not installed."}
 
         if not target:
             target = get_default_gateway()
@@ -59,9 +58,6 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389", user_id=No
         nmap_path = "nmap"  # Default to 'nmap' in PATH
         if os.name == 'nt':  # For Windows systems
             nmap_path = r"C:\Program Files (x86)\Nmap\nmap.exe" 
-
-        if not is_nmap_installed(nmap_path):
-            raise FileNotFoundError(f"Nmap executable not found at {nmap_path}. Install it or update the path.")
 
         # Run the Nmap scan
         nmap_output = subprocess.check_output([nmap_path, "-v", target], universal_newlines=True)
@@ -96,7 +92,6 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389", user_id=No
             ip = result['ip']
             system_info = get_system_info(ip)
             result['system_info'] = system_info
-            
 
         # Save or update results in Appwrite
         for result in results:
@@ -107,7 +102,6 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389", user_id=No
                     database_id=database_id,
                     collection_id=scan_result_collection_id,
                     queries=[Query.equal("ip", result["ip"])],
-                    # queries=[Query.equal("ip", result["ip"]), Query.equal("user_id", user_id)],
                 )
                 if documents["total"] > 0:
                     existing_document = documents["documents"][0]
@@ -158,6 +152,7 @@ def scan_ports_with_subprocess(target="192.168.1.0/24", ports="3389", user_id=No
     except Exception as e:
         logging.error(f"Error scanning with subprocess: {str(e)}")
         return {"error": f"Unexpected error: {str(e)}"}
+     
      
      
 def get_default_gateway():
