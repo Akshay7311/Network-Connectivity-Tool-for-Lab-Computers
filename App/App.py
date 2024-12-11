@@ -104,69 +104,124 @@ for ip in active_ips:
         pass
 
 # Generate the HTML report
-with open("index.html", "w") as f:
+with open("app.html", "w") as f:
     f.write("""
 <html>
 <head>
-<style>
-    body { font-family: Arial, sans-serif; background-color: #f4f4f4; }
-    .container { display: flex; flex-direction: column; align-items: center; }
-    .box { width: 80%; padding: 20px; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.5); margin: 10px; display: none; }
-    .active { border: 2px solid green; background-color: white; }
-    .inactive { border: 2px solid red; background-color: white; }
-    h2 { text-align: center; }
-    ul { list-style-type: none; padding: 0; }
-    header { text-align: center; padding: 10px; background-color: #333; color: white; }
-    footer { text-align: center; padding: 10px; background-color: #333; color: white; }
-    .button { background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
-    .button:hover { background-color: #3e8e41; }
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-</style>
+ <style>
+      body {
+        background-color: #f4f4f4;
+        height: calc(100%);
+      }
+      .container {
+        display: flex;
+        height: calc(100% - 70px);
+        flex-direction: row;
+      }
+      .container div:first-child {
+        display: flex;
+        flex-direction: column;
+        align-items: top;
+      }
+      .box {
+        width: 80%;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+        margin: 10px;
+        display: none;
+      }
+      .active {
+        color: var(--primary-color);
+        background-color: white;
+      }
+      .inactive {
+        border: 2px solid red;
+        background-color: white;
+      }
+      h2 {
+        text-align: center;
+      }
+      ul {
+        list-style-type: none;
+        padding: 0;
+      }
+      header {
+        text-align: center;
+        padding: 10px;
+        background-color: #333;
+        color: white;
+      }
+
+      .button {
+        width: 100%;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+    </style>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/navbar.css" />
+  
 </head>
 <body>
-<header><h1 style='text-align:center;'>Network Connectivity Tool</h1></header>
-   <ul
-      style="
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-      "
-    >
-      <li>
-        <a
-          style="
-            text-decoration: none;
-            color: #fff;
-            background-color: #333;
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-          "
-          href="index.html"
-          >Home</a
-        >
-      </li>
-      <li>
-        <a
-          style="
-            text-decoration: none;
-            color: #fff;
-            background-color: #333;
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-          "
-          href="logs.html"
-          >Logs</a
-        >
-      </li>
-    </ul>
+<nav class="navbar">
+      <div class="nav-brand">NetManager</div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="app.html">App</a></li>
+        <li><a href="logs.html">Logs</a></li>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </nav>
+  
 <div class='container'>
-    <button class='button' onclick='showLocalInfo()'>Local Info</button>
-    <button class='button' onclick='showActiveIPs()'>Active</button>
-    <button class='button' onclick='showInactiveIPs()'>Inactive</button>
-    <button class='button' onclick='showRDPUsers()'>RDP</button>
-    <button class='button' onclick='showUptimeInfo()'>Uptime</button>
-    <button class='button' onclick='showServicesAndPorts()'>Services/Ports</button>
+    <aside class="sidebar">
+        <div class="logo">NetManager</div>
+        <nav>
+          <ul>
+            <li>
+              <button class="button active" onclick="showLocalInfo()">
+                Local Info
+              </button>
+            </li>
+            <li>
+              <button class="button" onclick="showActiveIPs()">Active</button>
+            </li>
+            <li>
+              <button class="button" onclick="showInactiveIPs()">
+                Inactive
+              </button>
+            </li>
+            <li>
+              <button class="button" onclick="showRDPUsers()">RDP</button>
+            </li>
+            <li>
+              <button class="button" onclick="showUptimeInfo()">Uptime</button>
+            </li>
+            <li>
+              <button class="button" onclick="showServicesAndPorts()">
+                Services/Ports
+              </button>
+            </li>
+          </ul>
+        </nav>
+        <div class="sidebar-footer">
+          <a href="index.html">Back to Home</a>
+        </div>
+      </aside>
     
     <div id='local-info' class='box'><h2>Local System Information</h2>
         <div><strong>OS Information:</strong><br>""" + os_info + """</div>
@@ -228,6 +283,7 @@ with open("index.html", "w") as f:
         document.getElementById('uptime-info').style.display = 'none';
         document.getElementById('services-and-ports').style.display = 'none';
     }
+    showLocalInfo();
     function showActiveIPs() {
         document.getElementById('local-info').style.display = 'none';
         document.getElementById('active-ips').style.display = 'block';
@@ -269,6 +325,104 @@ with open("index.html", "w") as f:
         document.getElementById('services-and-ports').style.display = 'block';
     }
 </script>
+ <style>
+      .app-container {
+        display: flex;
+        min-height: 100vh;
+      }
+      .sidebar {
+        width: 250px;
+        color: white;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+      }
+      .logo {
+        font-size: 1.5rem;
+        font-weight: bold;
+        padding: 1rem;
+        color: #2563eb;
+      }
+
+      .sidebar nav {
+        flex: 1;
+      }
+
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .sidebar a {
+        color: white;
+        text-decoration: none;
+        padding: 0.75rem 1rem;
+        display: block;
+        margin: 0.25rem 0;
+        border-radius: 4px;
+      }
+
+      .sidebar a:hover,
+      .sidebar a.active {
+        background: #2563eb;
+      }
+
+      .sidebar-footer {
+        padding: 1rem;
+        border-top: 1px solid #333;
+      }
+
+      .sidebar-footer a {
+        color: #666;
+      }
+
+      .main-content {
+        flex: 1;
+        background: #f1f5f9;
+      }
+
+      header {
+        background: white;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      #menuToggle {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+
+      .content {
+        padding: 2rem;
+      }
+
+      @media (max-width: 768px) {
+        .sidebar {
+          position: fixed;
+          left: -250px;
+          top: 0;
+          bottom: 0;
+          transition: 0.3s;
+          z-index: 1000;
+        }
+
+        .sidebar.active {
+          left: 0;
+        }
+
+        #menuToggle {
+          display: block;
+        }
+      }
+    </style>
+
+    
 </body>
 </html>
     """)

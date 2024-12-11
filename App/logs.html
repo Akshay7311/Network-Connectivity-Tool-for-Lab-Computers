@@ -40,45 +40,22 @@
         display: none;
       }
     </style>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/navbar.css" />
   </head>
   <body>
-    <div class="container">
-      <ul
-        style="
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 1rem;
-          list-style: none;
-        "
-      >
-        <li>
-          <a
-            style="
-              text-decoration: none;
-              color: #fff;
-              background-color: #333;
-              padding: 0.5rem 1rem;
-              border-radius: 12px;
-            "
-            href="index.html"
-            >Home</a
-          >
-        </li>
-        <li>
-          <a
-            style="
-              text-decoration: none;
-              color: #fff;
-              background-color: #333;
-              padding: 0.5rem 1rem;
-              border-radius: 12px;
-            "
-            href="logs.html"
-            >Logs</a
-          >
-        </li>
+    <nav class="navbar">
+      <div class="nav-brand">NetManager</div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="app.html">App</a></li>
+        <li><a href="logs.html">Logs</a></li>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="contact.html">Contact</a></li>
       </ul>
+    </nav>
+    <div class="container">
       <h1>Logs Viewer</h1>
 
       <div id="logs" style="overflow-y: scroll"></div>
